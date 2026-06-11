@@ -1,0 +1,26 @@
+name: Sync Mundial
+
+# Corre solo: actualiza marcadores, estados y puntos desde football-data.
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # cada 10 min (en hora UTC). Puedes bajarlo a */5 si el repo es publico.
+  workflow_dispatch:          # boton para correrlo a mano desde la pestaña "Actions"
+
+concurrency:
+  group: sync-mundial
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install @supabase/supabase-js@2 --no-audit --no-fund
+      - run: node scripts/sync.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}

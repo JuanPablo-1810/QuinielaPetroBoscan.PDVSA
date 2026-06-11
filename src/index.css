@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  @apply text-crema font-body antialiased;
+  background-color: #1A0608;
+  /* Profundidad: dos focos dorados/rojos por arriba sobre un degradado oscuro */
+  background-image:
+    radial-gradient(1200px 600px at 75% -10%, rgba(232,180,78,0.10), transparent 60%),
+    radial-gradient(900px 500px at 10% 0%, rgba(122,28,34,0.35), transparent 55%),
+    linear-gradient(180deg, #2A0A0E 0%, #1C0709 45%, #140405 100%);
+  background-attachment: fixed;
+  min-height: 100%;
+  -webkit-tap-highlight-color: transparent;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Grano sutil para textura "premium" (no se nota, pero quita el plano digital) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#root { position: relative; z-index: 1; }
+
+input, select, textarea { font-size: 16px; }
+
+/* Texto con acabado dorado (gilded) */
+.text-gilded {
+  background: linear-gradient(180deg, #FBE8BE 0%, #E8B44E 55%, #C8902F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Numeros de marcador alineados (tabular) */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Scrollbar discreto y a tono */
+* { scrollbar-width: thin; scrollbar-color: #5A1A20 transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #5A1A20; border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Foco visible accesible */
+:focus-visible {
+  outline: 2px solid rgba(232,180,78,0.7);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

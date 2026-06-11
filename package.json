@@ -1,0 +1,30 @@
+{
+  "name": "quiniela-petroboscan",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "seed": "node --env-file=.env scripts/seed.mjs",
+    "sync": "node --env-file=.env scripts/sync.mjs",
+    "sim:setup": "node --env-file=.env scripts/simulate.mjs setup",
+    "sim:live": "node --env-file=.env scripts/simulate.mjs live",
+    "sim:final": "node --env-file=.env scripts/simulate.mjs final",
+    "sim:clean": "node --env-file=.env scripts/simulate.mjs clean"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "framer-motion": "^11.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "vite": "^5.4.0"
+  }
+}
