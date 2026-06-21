@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { matchState, opensAt, formatTime, formatShort, msToKickoff, formatCountdown } from '../lib/matchState'
 import { savePrediction } from '../lib/queries'
+import { useTeamView } from '../lib/teamView'
 
 function Flag({ src, size = 'h-7 w-7' }) {
   return (
@@ -98,6 +99,7 @@ function Desglose({ pred }) {
 
 export default function MatchCard({ match, onSaved, predLabel = 'Tu predicción' }) {
   const reduce = useReducedMotion()
+  const openTeam = useTeamView()
   const pred = match.prediction
   const [now, setNow] = useState(() => new Date())
   const [h, setH] = useState(pred?.pred_home ?? 0)
@@ -175,10 +177,12 @@ export default function MatchCard({ match, onSaved, predLabel = 'Tu predicción'
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex flex-1 items-center gap-2.5 overflow-hidden">
+        <button type="button" disabled={!match.home}
+          onClick={(e) => { e.stopPropagation(); if (match.home) openTeam(match.home) }}
+          className="flex flex-1 items-center gap-2.5 overflow-hidden text-left transition enabled:hover:opacity-80 enabled:active:scale-[0.98] disabled:cursor-default">
           <Flag src={match.home?.flag_url} />
           <span className="font-display text-base uppercase leading-tight tracking-wide text-crema [overflow-wrap:anywhere]">{match.home?.name ?? 'Por definir'}</span>
-        </div>
+        </button>
         <div className="min-w-[72px] px-1 text-center">
           {showScore ? (
             <div className="inline-flex items-center gap-1 rounded-lg bg-petroleo px-2.5 py-1 ring-1 ring-linea/80">
@@ -190,10 +194,12 @@ export default function MatchCard({ match, onSaved, predLabel = 'Tu predicción'
             <span className="font-body text-xs tabular text-crema/55">{formatTime(match.kickoff)}</span>
           )}
         </div>
-        <div className="flex flex-1 items-center justify-end gap-2.5 overflow-hidden">
+        <button type="button" disabled={!match.away}
+          onClick={(e) => { e.stopPropagation(); if (match.away) openTeam(match.away) }}
+          className="flex flex-1 items-center justify-end gap-2.5 overflow-hidden text-right transition enabled:hover:opacity-80 enabled:active:scale-[0.98] disabled:cursor-default">
           <span className="text-right font-display text-base uppercase leading-tight tracking-wide text-crema [overflow-wrap:anywhere]">{match.away?.name ?? 'Por definir'}</span>
           <Flag src={match.away?.flag_url} />
-        </div>
+        </button>
       </div>
 
       {canPredict && (

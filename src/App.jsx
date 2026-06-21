@@ -12,6 +12,7 @@ import Standings from './components/Standings'
 import Admin from './components/Admin'
 import Historial from './components/Historial'
 import Bracket from './components/Bracket'
+import { TeamViewProvider } from './lib/teamView'
 
 function Cargando() {
   return (
@@ -93,6 +94,7 @@ export default function App() {
   const nombre = profile.full_name || session.user?.email
 
   return (
+    <TeamViewProvider>
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-linea/70 bg-petroleo/70 backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-ambar/50 to-transparent" />
@@ -150,5 +152,6 @@ export default function App() {
         </div>
       </nav>
     </div>
+    </TeamViewProvider>
   )
 }

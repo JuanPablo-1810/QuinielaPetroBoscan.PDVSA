@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { getMatches } from '../lib/queries'
 import { matchState } from '../lib/matchState'
+import { useTeamView } from '../lib/teamView'
 
 const ROUNDS = [
   { key: 'r32', label: 'Ronda de 32', slots: 16 },
@@ -22,16 +23,19 @@ function fechaCorta(iso) {
 }
 
 function Lado({ team, ganador, perdedor, goles }) {
+  const openTeam = useTeamView()
   return (
     <div className={`flex items-center justify-between gap-2 ${perdedor ? 'opacity-40' : ''}`}>
-      <div className="flex min-w-0 items-center gap-2">
+      <button type="button" disabled={!team}
+        onClick={(e) => { e.stopPropagation(); if (team) openTeam(team) }}
+        className="flex min-w-0 items-center gap-2 text-left transition enabled:hover:opacity-80 enabled:active:scale-[0.98] disabled:cursor-default">
         {team?.flag_url
           ? <img src={team.flag_url} alt="" className="h-4 w-6 shrink-0 rounded-sm object-cover ring-1 ring-black/30" />
           : <span className="h-4 w-6 shrink-0 rounded-sm border border-linea" />}
         <span className={`truncate font-display text-sm uppercase tracking-wide ${team ? (ganador ? 'text-gilded' : 'text-crema') : 'text-crema/30'}`}>
           {team ? (team.code || team.name) : 'Por definir'}
         </span>
-      </div>
+      </button>
       <span className={`font-display text-base tabular ${ganador ? 'text-gilded' : 'text-crema/60'}`}>{goles}</span>
     </div>
   )
