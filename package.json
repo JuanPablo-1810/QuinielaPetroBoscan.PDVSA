@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "deploy": "npm run build",
     "seed": "node --env-file=.env scripts/seed.mjs",
     "sync": "node --env-file=.env scripts/sync.mjs",
     "sim:setup": "node --env-file=.env scripts/simulate.mjs setup",
