@@ -4,6 +4,23 @@ import { matchState, opensAt, formatTime, formatShort, msToKickoff, formatCountd
 import { savePrediction } from '../lib/queries'
 import { useTeamView } from '../lib/teamView'
 
+// ── Auditoría de predicciones ──────────────────────────────────────────────
+// Muestra a qué hora se registró cada predicción y con qué marcador. Visible
+// desde el primer partido del 22-jun-2026 (Argentina vs Austria) en adelante.
+// Para incluir partidos anteriores, adelanta esta fecha.
+const AUDITORIA_DESDE = new Date('2026-06-22T04:00:00Z') // 00:00 en Venezuela/Miami (-04)
+
+const MESES_AUD = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+function fmtStamp(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  let hh = d.getHours()
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  const ampm = hh >= 12 ? 'p.\u00a0m.' : 'a.\u00a0m.'
+  hh = hh % 12 || 12
+  return `${d.getDate()} ${MESES_AUD[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm} ${ampm}`
+}
+
 function Flag({ src, size = 'h-7 w-7' }) {
   return (
     <span className={`relative grid ${size} shrink-0 place-items-center overflow-hidden rounded-md ring-1 ring-linea/80 shadow-[0_2px_8px_rgba(0,0,0,0.5)]`}>
@@ -255,6 +272,18 @@ export default function MatchCard({ match, onSaved, predLabel = 'Tu predicción'
             {st === 'finished' && <PuntosBadge pred={pred} />}
           </div>
           {st === 'finished' && <Desglose pred={pred} />}
+          {(() => {
+            const stamp = pred.updated_at || pred.created_at
+            if (!stamp || new Date(match.kickoff) < AUDITORIA_DESDE) return null
+            return (
+              <div className="mt-2.5 flex items-start gap-1.5 rounded-lg bg-petroleo/60 px-2.5 py-1.5 font-body text-[11px] text-crema/45 ring-1 ring-linea/50">
+                <span className="mt-px text-crema/35">🕒</span>
+                <span>
+                  Predicción <span className="font-display tabular text-crema/65">{pred.pred_home}–{pred.pred_away}</span> registrada el <span className="text-crema/65">{fmtStamp(stamp)}</span>
+                </span>
+              </div>
+            )
+          })()}
         </div>
       )}
 

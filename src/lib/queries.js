@@ -44,7 +44,7 @@ export async function getMatches() {
   if (uid) {
     const { data: preds, error: pe } = await supabase
       .from('predictions')
-      .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit')
+      .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
       .eq('user_id', uid)
     if (pe) throw pe
     for (const p of preds ?? []) predByMatch[p.match_id] = p
@@ -69,7 +69,7 @@ export async function savePrediction(matchId, predHome, predAway) {
       { user_id: uid, match_id: matchId, pred_home: predHome, pred_away: predAway },
       { onConflict: 'user_id,match_id' }
     )
-    .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit')
+    .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
     .single()
   if (error) throw error
   return data
@@ -94,7 +94,7 @@ export async function getUserHistory(userId) {
 
   const { data: preds, error: pe } = await supabase
     .from('predictions')
-    .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit')
+    .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
     .eq('user_id', userId)
   if (pe) throw pe
 

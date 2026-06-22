@@ -4,9 +4,14 @@ import { getUserHistory } from '../lib/queries'
 import { matchState } from '../lib/matchState'
 import MatchCard from './MatchCard'
 
-// Panel con el historial de UNA persona: los partidos ya jugados que predijo,
-// con su marcador, sus puntos y el desglose de por qué los ganó.
-// La base solo entrega predicciones de partidos que ya arrancaron (anti-copia).
+// Un partido es visible aquí cuando su contador YA cerró (arrancó), aunque no
+// haya finalizado. La base (RLS) solo entrega predicciones ajenas de partidos
+// que ya arrancaron, así que el anti-copia se mantiene solo.
+const CERRADO = ['locked', 'live', 'halftime', 'finished']
+
+// Panel con el historial de UNA persona: sus predicciones en partidos cuyo
+// contador ya cerró, con su marcador, la hora exacta en que la registró y
+// —en los finalizados— sus puntos y el desglose.
 export default function PlayerHistory({ userId, name, isMe = false, onClose }) {
   const [matches, setMatches] = useState([])
   const [state, setState] = useState('loading')
@@ -14,10 +19,13 @@ export default function PlayerHistory({ userId, name, isMe = false, onClose }) {
   useEffect(() => {
     let active = true
     setState('loading')
-    getUserHistory(userId)
-      .then((m) => { if (active) { setMatches(m); setState('ready') } })
-      .catch((e) => { if (active) { console.error(e); setState('error') } })
-    return () => { active = false }
+    const load = () =>
+      getUserHistory(userId)
+        .then((m) => { if (active) { setMatches(m); setState('ready') } })
+        .catch((e) => { if (active) { console.error(e); setState('error') } })
+    load()
+    const t = setInterval(load, 30000)
+    return () => { active = false; clearInterval(t) }
   }, [userId])
 
   // Cerrar con la tecla Escape
@@ -27,15 +35,21 @@ export default function PlayerHistory({ userId, name, isMe = false, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // Solo partidos jugados que esta persona predijo
-  const jugados = matches
-    .filter((m) => matchState(m) === 'finished' && m.prediction)
+  // Partidos con predicción de esta persona y cuyo contador ya cerró
+  const conPred = matches.filter((m) => m.prediction && CERRADO.includes(matchState(m)))
+
+  const enCurso = conPred
+    .filter((m) => matchState(m) !== 'finished')
+    .sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff))
+
+  const jugados = conPred
+    .filter((m) => matchState(m) === 'finished')
     .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff))
 
   const total = jugados.reduce((s, m) => s + (Number(m.prediction.points) || 0), 0)
   const exactos = jugados.filter((m) => m.prediction.exact_hit).length
 
-  // Agrupar por jornada
+  // Finalizados agrupados por jornada
   const grupos = []
   const idx = {}
   for (const m of jugados) {
@@ -84,7 +98,7 @@ export default function PlayerHistory({ userId, name, isMe = false, onClose }) {
             </button>
           </div>
 
-          {/* Resumen */}
+          {/* Resumen (solo finalizados) */}
           {state === 'ready' && jugados.length > 0 && (
             <div className="flex items-center justify-between border-b border-linea/50 px-5 py-3">
               <span className="font-body text-xs text-crema/50">
@@ -98,11 +112,28 @@ export default function PlayerHistory({ userId, name, isMe = false, onClose }) {
           <div className="flex-1 overflow-y-auto px-5 py-4">
             {state === 'loading' && <p className="py-16 text-center font-body text-sm text-crema/55">Cargando historial…</p>}
             {state === 'error' && <p className="py-16 text-center font-body text-sm text-red-300">No se pudo cargar el historial.</p>}
-            {state === 'ready' && jugados.length === 0 && (
+            {state === 'ready' && jugados.length === 0 && enCurso.length === 0 && (
               <p className="py-16 text-center font-body text-sm text-crema/55">
-                {isMe ? 'Aún no tienes partidos jugados.' : 'Esta persona aún no tiene predicciones en partidos jugados.'}
+                {isMe ? 'Aún no tienes predicciones en partidos cerrados.' : 'Esta persona aún no tiene predicciones en partidos cerrados.'}
               </p>
             )}
+
+            {/* En curso: cerrados pero sin finalizar (sin puntos todavía) */}
+            {state === 'ready' && enCurso.length > 0 && (
+              <section className="mb-6">
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ambar animate-live-pulse" />
+                  <h4 className="font-display text-base uppercase tracking-wide text-ambar">En curso</h4>
+                  <span className="h-px flex-1 bg-gradient-to-r from-ambar/40 to-transparent" />
+                  <span className="font-body text-[10px] uppercase tracking-wider text-crema/40">sin puntuar</span>
+                </div>
+                <div className="space-y-2.5">
+                  {enCurso.map((m) => <MatchCard key={m.id} match={m} predLabel={etiqueta} />)}
+                </div>
+              </section>
+            )}
+
+            {/* Finalizados por jornada */}
             {state === 'ready' && grupos.map((g) => (
               <section key={g.label} className="mb-6 last:mb-0">
                 <div className="mb-3 flex items-center gap-3">
