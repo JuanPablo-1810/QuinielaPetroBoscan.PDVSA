@@ -87,6 +87,9 @@ export default function ElimIntro({ uid }) {
                     <p className="font-body text-[10px] leading-tight text-crema/55">máximo por partido</p>
                   </div>
                 </div>
+                <p className="mt-2 text-center font-body text-[11px] text-crema/45">
+                  …y <span className="text-gilded">+0.5</span> si aciertas la cantidad total de goles
+                </p>
               </motion.div>
 
               <Regla icon="⚽" titulo="Penales: tú decides" delay={0.18}>

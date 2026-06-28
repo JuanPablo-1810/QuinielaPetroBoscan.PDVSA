@@ -91,6 +91,7 @@ function PuntosBadge({ pred, isKO }) {
   if (isKO) {
     if (pred.outcome_hit) partes.push('Avanza')
     if (pred.exact_hit) partes.push('Marcador exacto')
+    else if (pred.goals_total_hit) partes.push('Cantidad de goles')
   } else {
     if (pred.outcome_hit) partes.push(pred.pred_home === pred.pred_away ? 'Empate' : 'Ganador')
     if (pred.exact_hit) partes.push('Marcador exacto')
@@ -115,6 +116,7 @@ function Desglose({ pred, isKO }) {
   if (isKO) {
     if (pred.outcome_hit) partes.push({ t: 'Acertó quién avanza', p: '+3' })
     if (pred.exact_hit) partes.push({ t: 'Marcador exacto', p: '+1' })
+    else if (pred.goals_total_hit) partes.push({ t: 'Cantidad de goles', p: '+0.5' })
   } else {
     if (pred.outcome_hit) {
       const empate = pred.pred_home === pred.pred_away
