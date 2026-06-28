@@ -30,7 +30,7 @@ export async function getMatches() {
   const [{ data: matches, error: me }, { data: teams, error: te }] = await Promise.all([
     supabase
       .from('matches')
-      .select('id, stage, group_label, round_label, kickoff, opens_at, status, home_goals, away_goals, home_team_id, away_team_id')
+      .select('id, stage, group_label, round_label, kickoff, opens_at, status, home_goals, away_goals, home_team_id, away_team_id, bracket_slot, feeds_slot, feeds_as, winner_team_id, pen_home, pen_away')
       .order('kickoff', { ascending: true }),
     supabase.from('teams').select('id, name, code, flag_url'),
   ])
@@ -44,7 +44,7 @@ export async function getMatches() {
   if (uid) {
     const { data: preds, error: pe } = await supabase
       .from('predictions')
-      .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
+      .select('match_id, pred_home, pred_away, pred_advance, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
       .eq('user_id', uid)
     if (pe) throw pe
     for (const p of preds ?? []) predByMatch[p.match_id] = p
@@ -59,17 +59,18 @@ export async function getMatches() {
 }
 
 // Guardar / actualizar una predicción (la base valida la ventana [opens_at, kickoff))
-export async function savePrediction(matchId, predHome, predAway) {
+// predAdvance: 'home' | 'away' | undefined  (solo en eliminatorias)
+export async function savePrediction(matchId, predHome, predAway, predAdvance) {
   const { data: auth } = await supabase.auth.getUser()
   const uid = auth?.user?.id
   if (!uid) throw new Error('No hay sesión.')
   const { data, error } = await supabase
     .from('predictions')
     .upsert(
-      { user_id: uid, match_id: matchId, pred_home: predHome, pred_away: predAway },
+      { user_id: uid, match_id: matchId, pred_home: predHome, pred_away: predAway, pred_advance: predAdvance ?? null },
       { onConflict: 'user_id,match_id' }
     )
-    .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
+    .select('match_id, pred_home, pred_away, pred_advance, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
     .single()
   if (error) throw error
   return data
@@ -82,7 +83,7 @@ export async function getUserHistory(userId) {
   const [{ data: matches, error: me }, { data: teams, error: te }] = await Promise.all([
     supabase
       .from('matches')
-      .select('id, stage, group_label, round_label, kickoff, opens_at, status, home_goals, away_goals, home_team_id, away_team_id')
+      .select('id, stage, group_label, round_label, kickoff, opens_at, status, home_goals, away_goals, home_team_id, away_team_id, bracket_slot, feeds_slot, feeds_as, winner_team_id, pen_home, pen_away')
       .order('kickoff', { ascending: true }),
     supabase.from('teams').select('id, name, code, flag_url'),
   ])
@@ -94,7 +95,7 @@ export async function getUserHistory(userId) {
 
   const { data: preds, error: pe } = await supabase
     .from('predictions')
-    .select('match_id, pred_home, pred_away, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
+    .select('match_id, pred_home, pred_away, pred_advance, points, outcome_hit, exact_hit, goals_total_hit, created_at, updated_at')
     .eq('user_id', userId)
   if (pe) throw pe
 

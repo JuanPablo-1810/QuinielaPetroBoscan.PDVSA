@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import AuthBackground from './AuthBackground'
 
 function traducirError(msg = '') {
   const m = msg.toLowerCase()
@@ -81,6 +82,23 @@ export default function Auth() {
   const [info, setInfo] = useState('')
 
   const isSignup = mode === 'signup'
+  const isForgot = mode === 'forgot'
+
+  // Si el enlace de recuperación llegó vencido/usado, Supabase devuelve a la
+  // app con #error=...&error_code=otp_expired. Lo detectamos y guiamos al
+  // usuario a pedir uno nuevo (en vez de dejar un login sin contexto).
+  useEffect(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    if (hash && hash.includes('error')) {
+      const params = new URLSearchParams(hash.replace(/^#/, ''))
+      const code = params.get('error_code') || params.get('error')
+      if (code) {
+        setMode('forgot')
+        setError('El enlace de recuperación expiró o ya se había usado. Pide uno nuevo aquí abajo y ábrelo apenas te llegue.')
+        try { window.history.replaceState(null, '', window.location.pathname + window.location.search) } catch { /* noop */ }
+      }
+    }
+  }, [])
 
   function switchMode(next) {
     setMode(next); setError(''); setInfo('')
@@ -89,6 +107,22 @@ export default function Auth() {
   async function handleSubmit(e) {
     e?.preventDefault?.()
     setError(''); setInfo('')
+    if (isForgot) {
+      if (!email.trim()) { setError('Escribe tu correo.'); return }
+      setLoading(true)
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin,
+        })
+        if (error) throw error
+        setInfo('Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja (y la carpeta de spam).')
+      } catch (err) {
+        setError(traducirError(err.message))
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
     if (!email || !password || (isSignup && !fullName.trim())) {
       setError('Completa todos los campos.'); return
     }
@@ -123,12 +157,13 @@ export default function Auth() {
   }
 
   return (
-    <div className="grid min-h-dvh place-items-center px-6 py-10">
+    <div className="relative grid min-h-dvh place-items-center overflow-hidden px-6 py-10">
+      <AuthBackground />
       <motion.div
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-sm"
+        className="relative z-10 w-full max-w-sm"
       >
         <div className="mb-8 text-center">
           <Marca />
@@ -137,10 +172,11 @@ export default function Auth() {
             Quiniela <span className="text-gilded">PetroBoscan</span>
           </h1>
           <p className="mt-3 font-body text-sm text-crema/55">
-            {isSignup ? 'Crea tu cuenta para jugar' : 'Entra para hacer tus predicciones'}
+            {isForgot ? 'Te enviaremos un enlace a tu correo' : isSignup ? 'Crea tu cuenta para jugar' : 'Entra para hacer tus predicciones'}
           </p>
         </div>
 
+        {!isForgot && (
         <div className="relative mb-6 grid grid-cols-2 rounded-xl border border-linea bg-petroleo-2/80 p-1">
           <motion.span
             className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-oro-grad shadow-oro"
@@ -156,6 +192,7 @@ export default function Auth() {
             Registrarse
           </button>
         </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {isSignup && (
@@ -164,17 +201,35 @@ export default function Auth() {
           )}
           <Field label="Correo" type="email" value={email} onChange={setEmail}
             placeholder="tucorreo@ejemplo.com" autoComplete="email" />
-          <Field label="Contraseña" type="password" value={password} onChange={setPassword}
-            placeholder="••••••••" autoComplete={isSignup ? 'new-password' : 'current-password'} reveal />
+          {!isForgot && (
+            <Field label="Contraseña" type="password" value={password} onChange={setPassword}
+              placeholder="••••••••" autoComplete={isSignup ? 'new-password' : 'current-password'} reveal />
+          )}
+
+          {!isSignup && !isForgot && (
+            <div className="text-right">
+              <button type="button" onClick={() => switchMode('forgot')}
+                className="font-body text-xs text-crema/45 transition hover:text-ambar">
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
 
           {error && <p className="font-body text-sm text-red-300">{error}</p>}
           {info && <p className="font-body text-sm text-cancha">{info}</p>}
 
           <button type="submit" disabled={loading}
             className="group/btn relative mt-2 w-full overflow-hidden rounded-xl bg-oro-grad py-3 font-display text-lg uppercase tracking-[0.12em] text-petroleo shadow-oro transition active:scale-[0.98] disabled:opacity-60">
-            <span className="relative z-10">{loading ? 'Un momento…' : isSignup ? 'Crear cuenta' : 'Entrar'}</span>
+            <span className="relative z-10">{loading ? 'Un momento…' : isForgot ? 'Enviar enlace' : isSignup ? 'Crear cuenta' : 'Entrar'}</span>
             <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/30 opacity-0 transition-all duration-700 group-hover/btn:left-[120%] group-hover/btn:opacity-100" />
           </button>
+
+          {isForgot && (
+            <button type="button" onClick={() => switchMode('login')}
+              className="w-full text-center font-body text-xs text-crema/45 transition hover:text-ambar">
+              ← Volver a entrar
+            </button>
+          )}
         </form>
       </motion.div>
     </div>

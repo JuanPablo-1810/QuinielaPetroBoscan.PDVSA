@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useSession } from './hooks/useSession'
 import { useProfile } from './hooks/useProfile'
 import { supabase } from './lib/supabase'
 import { missingEnv } from './lib/supabase'
 import Auth from './components/Auth'
+import ResetPassword from './components/ResetPassword'
+import ElimIntro from './components/ElimIntro'
 import Onboarding from './components/Onboarding'
-import Groups from './components/Groups'
 import Matches from './components/Matches'
 import Standings from './components/Standings'
 import Admin from './components/Admin'
@@ -83,7 +84,20 @@ export default function App() {
   const [view, setView] = useState('partidos')
   const reduce = useReducedMotion()
 
+  // Modo "recuperar contraseña": el enlace del correo abre la app con
+  // #type=recovery y Supabase dispara el evento PASSWORD_RECOVERY.
+  const [recovery, setRecovery] = useState(
+    () => typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+  )
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
+
   if (missingEnv) return <MissingConfig />
+  if (recovery) return <ResetPassword onDone={() => setRecovery(false)} />
 
   if (loading) return <Cargando />
   if (!session) return <Auth />
@@ -95,6 +109,7 @@ export default function App() {
 
   return (
     <TeamViewProvider>
+    <ElimIntro uid={session.user?.id} />
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-linea/70 bg-petroleo/70 backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-ambar/50 to-transparent" />
@@ -137,7 +152,7 @@ export default function App() {
             exit={reduce ? undefined : { opacity: 0, y: -8 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            {view === 'partidos' ? <Matches /> : view === 'historial' ? <Historial /> : view === 'tabla' ? <Standings /> : view === 'bracket' ? <Bracket /> : view === 'admin' ? <Admin onClose={() => setView('partidos')} /> : <Groups />}
+            {view === 'historial' ? <Historial /> : view === 'tabla' ? <Standings /> : view === 'bracket' ? <Bracket /> : view === 'admin' ? <Admin onClose={() => setView('partidos')} /> : <Matches />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -147,7 +162,6 @@ export default function App() {
           <NavBtn id="partidos" active={view === 'partidos'} onClick={() => setView('partidos')}>Partidos</NavBtn>
           <NavBtn id="historial" active={view === 'historial'} onClick={() => setView('historial')}>Historial</NavBtn>
           <NavBtn id="tabla" active={view === 'tabla'} onClick={() => setView('tabla')}>Tabla</NavBtn>
-          <NavBtn id="grupos" active={view === 'grupos'} onClick={() => setView('grupos')}>Grupos</NavBtn>
           <NavBtn id="bracket" active={view === 'bracket'} onClick={() => setView('bracket')}>Bracket</NavBtn>
         </div>
       </nav>

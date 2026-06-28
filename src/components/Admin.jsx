@@ -8,6 +8,23 @@ const ESTADOS = [
   { code: 'FT', label: 'Final' },
 ]
 
+// En eliminatorias se agrega el estado "Penales".
+const ESTADOS_KO = [
+  { code: 'NS', label: 'No empezado' },
+  { code: '1H', label: 'En vivo' },
+  { code: 'HT', label: 'Medio T.' },
+  { code: 'PEN', label: 'Penales' },
+  { code: 'FT', label: 'Final' },
+]
+
+// ISO -> valor para <input type="datetime-local"> (en hora local del admin)
+function toLocalInput(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 function Equipo({ team, align = 'left' }) {
   return (
     <div className={`flex min-w-0 items-center gap-2 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}>
@@ -31,12 +48,51 @@ function Stepper({ value, onChange }) {
   )
 }
 
+// Una fila de la tanda de penales: casillas que togglean verde (✓) / rojo (✕).
+function PenRow({ team, kicks, setKicks }) {
+  const toggle = (i) => setKicks(kicks.map((k, j) => (j === i ? (k === 'scored' ? 'missed' : 'scored') : k)))
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex w-16 shrink-0 items-center gap-1.5">
+        {team?.flag_url
+          ? <img src={team.flag_url} alt="" className="h-4 w-6 shrink-0 rounded-sm object-cover ring-1 ring-black/30" />
+          : <span className="h-4 w-6 shrink-0 rounded-sm border border-linea" />}
+        <span className="truncate font-display text-xs uppercase tracking-wide text-crema/80">{team?.code || '—'}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        {kicks.map((k, i) => (
+          <button key={i} onClick={() => toggle(i)}
+            className={`grid h-5 w-5 place-items-center rounded-md border text-[10px] font-bold transition active:scale-90 ${
+              k === 'scored' ? 'border-cancha bg-cancha/80 text-petroleo' : 'border-red-400 bg-red-500/70 text-white'}`}>
+            {k === 'scored' ? '✓' : '✕'}
+          </button>
+        ))}
+        <button onClick={() => setKicks([...kicks, 'scored'])}
+          className="grid h-5 w-5 place-items-center rounded-md border border-linea text-crema/60 active:scale-90">+</button>
+        {kicks.length > 0 && (
+          <button onClick={() => setKicks(kicks.slice(0, -1))}
+            className="grid h-5 w-5 place-items-center rounded-md border border-linea text-crema/60 active:scale-90">−</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function AdminRow({ m }) {
+  const isKO = m.stage !== 'group'
   const [h, setH] = useState(m.home_goals ?? 0)
   const [a, setA] = useState(m.away_goals ?? 0)
   const [status, setStatus] = useState(m.status)
+  const [fecha, setFecha] = useState(toLocalInput(m.kickoff))
+  const [kicksH, setKicksH] = useState(() => Array(m.pen_home ?? 0).fill('scored'))
+  const [kicksA, setKicksA] = useState(() => Array(m.pen_away ?? 0).fill('scored'))
   const [ok, setOk] = useState(false)
   const [err, setErr] = useState('')
+
+  const penH = kicksH.filter((k) => k === 'scored').length
+  const penA = kicksA.filter((k) => k === 'scored').length
+  // El editor de penales aparece cuando hace falta desempatar (empate en 120')
+  const showPens = isKO && (status === 'PEN' || h === a || penH > 0 || penA > 0)
 
   async function push(patch) {
     setErr('')
@@ -59,6 +115,14 @@ function AdminRow({ m }) {
     else push({ status: s, home_goals: h, away_goals: a })
   }
 
+  function guardarPenales() {
+    const s = status === 'FT' ? 'FT' : 'PEN'
+    setStatus(s)
+    // Manda también el marcador de los 120' para que la base pueda
+    // deducir al que avanza cuando se marque Final.
+    push({ pen_home: penH, pen_away: penA, status: s, home_goals: h, away_goals: a })
+  }
+
   return (
     <div className="rounded-xl border border-linea bg-petroleo-2 p-3">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -71,7 +135,7 @@ function AdminRow({ m }) {
         <Equipo team={m.away} align="right" />
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        {ESTADOS.map((e) => (
+        {(isKO ? ESTADOS_KO : ESTADOS).map((e) => (
           <button key={e.code} onClick={() => cambiarEstado(e.code)}
             className={`rounded-lg border px-2.5 py-1 font-body text-[11px] uppercase tracking-wider transition active:scale-95 ${
               status === e.code ? 'border-ambar/70 bg-ambar/10 text-ambar' : 'border-linea text-crema/55 hover:text-crema'
@@ -82,6 +146,42 @@ function AdminRow({ m }) {
         <span className="ml-auto font-body text-[11px]">
           {err ? <span className="text-red-400">{err}</span> : ok ? <span className="text-cancha">✓ guardado</span> : null}
         </span>
+      </div>
+
+      {showPens && (
+        <div className="mt-2 border-t border-linea/50 pt-2">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="font-body text-[11px] uppercase tracking-wider text-crema/45">Penales</span>
+            <span className="font-display text-sm tabular text-gilded">{penH} – {penA}</span>
+          </div>
+          <div className="space-y-1.5">
+            <PenRow team={m.home} kicks={kicksH} setKicks={setKicksH} />
+            <PenRow team={m.away} kicks={kicksA} setKicks={setKicksA} />
+          </div>
+          {h === a && penH === penA && (
+            <p className="mt-1.5 font-body text-[10px] text-ambar/80">Empate: los penales deben quedar distintos para definir quién avanza.</p>
+          )}
+          <button onClick={guardarPenales}
+            className="mt-2 w-full rounded-lg border border-ambar/50 bg-ambar/10 py-1.5 font-body text-[11px] uppercase tracking-wider text-ambar transition active:scale-95">
+            Guardar penales
+          </button>
+        </div>
+      )}
+
+      <div className="mt-2 flex items-center gap-2 border-t border-linea/50 pt-2">
+        <span className="shrink-0 font-body text-[11px] uppercase tracking-wider text-crema/45">Fecha</span>
+        <input
+          type="datetime-local"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          className="min-w-0 flex-1 rounded-lg border border-linea bg-petroleo px-2 py-1 font-body text-xs text-crema [color-scheme:dark] focus:border-ambar/60 focus:outline-none"
+        />
+        <button
+          onClick={() => { if (fecha) push({ kickoff: new Date(fecha).toISOString() }) }}
+          className="shrink-0 rounded-lg border border-linea px-2.5 py-1 font-body text-[11px] uppercase tracking-wider text-crema/65 transition hover:border-ambar/60 hover:text-ambar active:scale-95"
+        >
+          Guardar
+        </button>
       </div>
     </div>
   )

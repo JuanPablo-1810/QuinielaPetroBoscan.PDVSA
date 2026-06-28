@@ -85,11 +85,16 @@ export default function Standings() {
                     {u.full_name}{yo && <span className="ml-1 text-ambar/80">(tú)</span>}
                   </p>
                   <p className="font-body text-[11px] text-crema/40">
-                    {u.jugados} jugados · {u.aciertos} aciertos · {u.exactos} exactos
+                    {u.jugados} jugados · {u.aciertos} aciertos
                     {u.bono_campeon ? <span className="text-ambar"> · +15 campeón</span> : ''}
                   </p>
                 </div>
-                <span className="font-display text-2xl tabular text-gilded">{Number(u.total_points)}</span>
+                <div className="flex flex-col items-end leading-none">
+                  <span className="font-display text-2xl tabular text-gilded">{Number(u.total_points)}</span>
+                  <span className="mt-1 flex items-center gap-0.5 font-body text-[10px] tabular text-ambar/65" title="Aciertos exactos (criterio de desempate)">
+                    <span aria-hidden>★</span> {u.exactos} <span className="text-crema/35">exactos</span>
+                  </span>
+                </div>
                 <span className="font-display text-lg text-crema/25 transition-colors group-hover:text-ambar/70" aria-hidden>›</span>
               </motion.li>
             )
@@ -99,6 +104,11 @@ export default function Standings() {
 
       {marcarUltimos && (
         <p className="mt-4 text-center font-body text-[11px] text-crema/35">Podio en dorado · últimos 3 en zona roja</p>
+      )}
+      {total > 1 && (
+        <p className="mt-2 text-center font-body text-[11px] text-crema/35">
+          Empate en puntos: gana quien tenga más <span className="text-ambar/70">★ aciertos exactos</span>
+        </p>
       )}
       {total > 0 && (
         <p className="mt-2 text-center font-body text-[11px] text-crema/35">Toca a una persona para ver su historial</p>
