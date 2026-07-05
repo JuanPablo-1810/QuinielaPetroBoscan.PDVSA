@@ -6,7 +6,6 @@ import { supabase } from './lib/supabase'
 import { missingEnv } from './lib/supabase'
 import Auth from './components/Auth'
 import ResetPassword from './components/ResetPassword'
-import ElimIntro from './components/ElimIntro'
 import Onboarding from './components/Onboarding'
 import Matches from './components/Matches'
 import Standings from './components/Standings'
@@ -109,7 +108,6 @@ export default function App() {
 
   return (
     <TeamViewProvider>
-    <ElimIntro uid={session.user?.id} />
     <div className="min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-linea/70 bg-petroleo/70 backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-ambar/50 to-transparent" />
