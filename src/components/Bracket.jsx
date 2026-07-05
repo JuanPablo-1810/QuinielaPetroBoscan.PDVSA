@@ -160,22 +160,12 @@ export default function Bracket() {
     flags.push({ key: 'F-a', team: final?.away ?? null, state: st.away, x: colX(4), y: 50 + 4, size: 'h-9 w-9 sm:h-12 sm:w-12' })
   }
 
-  const LABELS = ['16vos', 'Octavos', 'Cuartos', 'Semis', 'Final', 'Semis', 'Cuartos', 'Octavos', '16vos']
-
   return (
     <div>
       <h2 className="mb-3 font-display text-4xl uppercase leading-none tracking-wide">Bracket</h2>
       <p className="mb-4 font-body text-[11px] text-crema/45">
         En <span className="text-ambar">color</span> los que avanzan · en gris los eliminados. Toca una bandera para ver su historial.
       </p>
-
-      {/* Etiquetas de ronda alineadas a las columnas */}
-      <div className="relative h-3">
-        {LABELS.map((l, i) => (
-          <span key={i} style={{ left: `${colX(i)}%` }}
-            className={`absolute -translate-x-1/2 whitespace-nowrap font-body text-[8px] uppercase leading-none tracking-[0.06em] sm:text-[10px] ${i === 4 ? 'text-gilded' : 'text-crema/35'}`}>{l}</span>
-        ))}
-      </div>
 
       {/* Cuadro: cabe al ancho de la pantalla, sin scroll horizontal */}
       <div className="relative mt-1 h-[42rem] w-full sm:h-[48rem]">
