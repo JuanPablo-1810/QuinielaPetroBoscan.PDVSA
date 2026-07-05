@@ -190,9 +190,6 @@ export default function Bracket() {
           ))}
         </svg>
 
-        {/* Trofeo/estrella al centro */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[3.2rem] text-lg opacity-40 sm:-translate-y-[4rem] sm:text-2xl">🏆</div>
-
         {/* Banderas */}
         {flags.map((f) => (
           <Flag key={f.key} team={f.team} state={f.state} size={f.size}
