@@ -24,8 +24,10 @@ function FavFlag({ team, id, fuera, esCampeon }) {
       {verBandera ? (
         // La opacidad/gris va SOLO en la bandera, nunca en el círculo:
         // así el aro siempre se ve y ningún favorito "desaparece".
+        // Gris parcial, no total: un gris al 100% convierte las banderas de un
+        // solo color (Marruecos) en un disco uniforme que parece vacío.
         <img src={team.flag_url} alt=""
-          className={`h-full w-full object-cover ${fuera ? 'opacity-70 grayscale' : ''}`}
+          className={`h-full w-full object-cover ${fuera ? 'opacity-80 grayscale-[.75]' : ''}`}
           onError={() => setImgErr(true)} />
       ) : (
         <span className={`font-display text-[8px] uppercase leading-none tracking-tight ${fuera ? 'text-crema/40' : 'text-crema/75'}`}>
