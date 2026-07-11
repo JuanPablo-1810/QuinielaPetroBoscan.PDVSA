@@ -15,19 +15,20 @@ function FavFlag({ team, id, fuera, esCampeon }) {
   return (
     <span
       title={titulo}
-      className={`grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-petroleo-3 ring-1 transition sm:h-6 sm:w-6 ${
-        esCampeon ? 'ring-2 ring-ambar shadow-[0_0_10px_-1px_rgba(232,180,78,0.9)]'
-          : fuera ? 'ring-linea'
-          : 'ring-cancha/50'
+      className={`grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-petroleo-3 ring-2 transition sm:h-6 sm:w-6 ${
+        esCampeon ? 'ring-ambar shadow-[0_0_10px_-1px_rgba(232,180,78,0.9)]'
+          : fuera ? 'ring-crema/25'
+          : 'ring-cancha/70'
       }`}
     >
       {verBandera ? (
         // La opacidad/gris va SOLO en la bandera, nunca en el círculo:
         // así el aro siempre se ve y ningún favorito "desaparece".
-        // Gris parcial, no total: un gris al 100% convierte las banderas de un
-        // solo color (Marruecos) en un disco uniforme que parece vacío.
+        // Gris MUY suave en los eliminados: un gris fuerte convierte las banderas
+        // de un solo color (Marruecos) en un disco que parece vacío. El estado
+        // (vivo / eliminado) lo marca el ARO, no la saturación de la bandera.
         <img src={team.flag_url} alt=""
-          className={`h-full w-full object-cover ${fuera ? 'opacity-80 grayscale-[.75]' : ''}`}
+          className={`h-full w-full object-cover ${fuera ? 'opacity-95 grayscale-[.3]' : ''}`}
           onError={() => setImgErr(true)} />
       ) : (
         <span className={`font-display text-[8px] uppercase leading-none tracking-tight ${fuera ? 'text-crema/40' : 'text-crema/75'}`}>
@@ -165,8 +166,8 @@ export default function Standings() {
       )}
       {total > 0 && (
         <p className="mt-4 text-center font-body text-[11px] text-crema/35">
-          Banderas = los 3 favoritos de cada quien · <span className="text-cancha/70">en color</span> siguen vivos ·{' '}
-          <span className="text-crema/50">en gris</span> eliminados · el <span className="text-ambar/70">campeón</span> da +15
+          Los 3 favoritos de cada quien · aro <span className="text-cancha/80">verde</span> = sigue vivo ·{' '}
+          aro <span className="text-crema/60">gris</span> = eliminado · aro <span className="text-ambar/80">dorado</span> = campeón (+15)
         </p>
       )}
       {total > 1 && (
