@@ -146,6 +146,43 @@ export async function getStandings() {
 }
 
 
+// Auditoría de favoritos: mapa de equipos + quién sigue vivo en el torneo.
+// Un equipo está ELIMINADO si:
+//   a) perdió una llave ya finalizada, o
+//   b) ni siquiera entró al bracket (no clasificó de la fase de grupos).
+// Se recalcula solo a medida que el admin va cerrando partidos.
+export async function getTeamsStatus() {
+  const [{ data: teams, error: te }, { data: kos, error: me }] = await Promise.all([
+    supabase.from('teams').select('id, name, code, flag_url'),
+    supabase
+      .from('matches')
+      .select('stage, status, home_team_id, away_team_id, winner_team_id')
+      .neq('stage', 'group'),
+  ])
+  if (te) throw te
+  if (me) throw me
+
+  const teamById = {}
+  for (const t of teams ?? []) teamById[t.id] = t
+
+  const enBracket = new Set()
+  const perdieron = new Set()
+  let campeon = null
+
+  for (const m of kos ?? []) {
+    if (m.home_team_id) enBracket.add(m.home_team_id)
+    if (m.away_team_id) enBracket.add(m.away_team_id)
+    if (m.status === 'FT' && m.winner_team_id != null) {
+      if (m.home_team_id && m.home_team_id !== m.winner_team_id) perdieron.add(m.home_team_id)
+      if (m.away_team_id && m.away_team_id !== m.winner_team_id) perdieron.add(m.away_team_id)
+      if (m.stage === 'final') campeon = m.winner_team_id
+    }
+  }
+
+  const eliminado = (id) => !enBracket.has(id) || perdieron.has(id)
+  return { teamById, eliminado, campeon }
+}
+
 // ADMIN: cambia marcador/estado de un partido (la base valida que seas admin)
 export async function adminUpdateMatch(matchId, fields) {
   const patch = { ...fields, updated_at: new Date().toISOString() }

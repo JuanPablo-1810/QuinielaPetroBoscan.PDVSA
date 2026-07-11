@@ -1,8 +1,39 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { getStandings } from '../lib/queries'
+import { getStandings, getTeamsStatus } from '../lib/queries'
 import { supabase } from '../lib/supabase'
 import PlayerHistory from './PlayerHistory'
+
+// Los 3 equipos favoritos de cada quien: en color si siguen en competencia,
+// en gris si ya fueron eliminados. El campeón se resalta en oro (bono +15).
+function Favoritos({ ids, teams }) {
+  const lista = (ids ?? []).slice(0, 3)
+  if (!lista.length) return <span className="w-[4.5rem] shrink-0" />
+  return (
+    <div className="flex w-[4.5rem] shrink-0 items-center justify-end gap-1">
+      {lista.map((id) => {
+        const t = teams.teamById[id]
+        const fuera = teams.eliminado(id)
+        const esCampeon = teams.campeon != null && teams.campeon === id
+        return (
+          <span
+            key={id}
+            title={`${t?.name ?? 'Equipo'}${esCampeon ? ' · ¡CAMPEÓN! +15' : fuera ? ' · eliminado' : ' · sigue vivo'}`}
+            className={`grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full ring-1 transition sm:h-6 sm:w-6 ${
+              esCampeon ? 'ring-2 ring-ambar shadow-[0_0_10px_-1px_rgba(232,180,78,0.9)]'
+                : fuera ? 'opacity-30 grayscale ring-linea/60'
+                : 'ring-cancha/50'
+            }`}
+          >
+            {t?.flag_url
+              ? <img src={t.flag_url} alt="" className="h-full w-full object-cover" />
+              : <span className="h-full w-full bg-linea-2" />}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
 
 function Centered({ children }) {
   return <div className="py-20 text-center font-body text-crema/60">{children}</div>
@@ -20,8 +51,11 @@ function RankBadge({ rank }) {
   )
 }
 
+const SIN_EQUIPOS = { teamById: {}, eliminado: () => false, campeon: null }
+
 export default function Standings() {
   const [rows, setRows] = useState([])
+  const [teams, setTeams] = useState(SIN_EQUIPOS)
   const [state, setState] = useState('loading')
   const [uid, setUid] = useState(null)
   const [selected, setSelected] = useState(null) // { userId, name, isMe }
@@ -31,8 +65,8 @@ export default function Standings() {
     supabase.auth.getUser().then(({ data }) => { if (active) setUid(data?.user?.id ?? null) })
 
     const load = () =>
-      getStandings()
-        .then((r) => { if (active) { setRows(r); setState('ready') } })
+      Promise.all([getStandings(), getTeamsStatus()])
+        .then(([r, ts]) => { if (active) { setRows(r); setTeams(ts); setState('ready') } })
         .catch((e) => { console.error(e); if (active) setState((s) => (s === 'loading' ? 'error' : s)) })
 
     load()
@@ -89,6 +123,7 @@ export default function Standings() {
                     {u.bono_campeon ? <span className="text-ambar"> · +15 campeón</span> : ''}
                   </p>
                 </div>
+                <Favoritos ids={u.favorite_team_ids} teams={teams} />
                 <div className="flex flex-col items-end leading-none">
                   <span className="font-display text-2xl tabular text-gilded">{Number(u.total_points)}</span>
                   <span className="mt-1 flex items-center gap-0.5 font-body text-[10px] tabular text-ambar/65" title="Aciertos exactos (criterio de desempate)">
@@ -104,6 +139,12 @@ export default function Standings() {
 
       {marcarUltimos && (
         <p className="mt-4 text-center font-body text-[11px] text-crema/35">Podio en dorado · últimos 3 en zona roja</p>
+      )}
+      {total > 0 && (
+        <p className="mt-4 text-center font-body text-[11px] text-crema/35">
+          Banderas = los 3 favoritos de cada quien · <span className="text-cancha/70">en color</span> siguen vivos ·{' '}
+          <span className="text-crema/50">en gris</span> eliminados · el <span className="text-ambar/70">campeón</span> da +15
+        </p>
       )}
       {total > 1 && (
         <p className="mt-2 text-center font-body text-[11px] text-crema/35">
