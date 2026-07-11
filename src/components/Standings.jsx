@@ -4,6 +4,38 @@ import { getStandings, getTeamsStatus } from '../lib/queries'
 import { supabase } from '../lib/supabase'
 import PlayerHistory from './PlayerHistory'
 
+// Una bandera de favorito. Si el equipo no tiene bandera (o la imagen falla),
+// muestra su CÓDIGO (MAR, ECU…) para que nunca se pierda un favorito.
+function FavFlag({ team, id, fuera, esCampeon }) {
+  const [imgErr, setImgErr] = useState(false)
+  const verBandera = !!team?.flag_url && !imgErr
+  const titulo = `${team?.name ?? `Equipo #${id}`}${
+    esCampeon ? ' · ¡CAMPEÓN! +15' : fuera ? ' · eliminado' : ' · sigue vivo'}`
+
+  return (
+    <span
+      title={titulo}
+      className={`grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-petroleo-3 ring-1 transition sm:h-6 sm:w-6 ${
+        esCampeon ? 'ring-2 ring-ambar shadow-[0_0_10px_-1px_rgba(232,180,78,0.9)]'
+          : fuera ? 'ring-linea'
+          : 'ring-cancha/50'
+      }`}
+    >
+      {verBandera ? (
+        // La opacidad/gris va SOLO en la bandera, nunca en el círculo:
+        // así el aro siempre se ve y ningún favorito "desaparece".
+        <img src={team.flag_url} alt=""
+          className={`h-full w-full object-cover ${fuera ? 'opacity-70 grayscale' : ''}`}
+          onError={() => setImgErr(true)} />
+      ) : (
+        <span className={`font-display text-[8px] uppercase leading-none tracking-tight ${fuera ? 'text-crema/40' : 'text-crema/75'}`}>
+          {team?.code || '?'}
+        </span>
+      )}
+    </span>
+  )
+}
+
 // Los 3 equipos favoritos de cada quien: en color si siguen en competencia,
 // en gris si ya fueron eliminados. El campeón se resalta en oro (bono +15).
 function Favoritos({ ids, teams }) {
@@ -11,32 +43,15 @@ function Favoritos({ ids, teams }) {
   if (!lista.length) return <span className="w-[4.5rem] shrink-0 sm:w-[5.5rem]" />
   return (
     <div className="flex w-[4.5rem] shrink-0 items-center justify-end gap-1 sm:w-[5.5rem]">
-      {lista.map((id) => {
-        const t = teams.teamById[id]
-        const fuera = teams.eliminado(id)
-        const esCampeon = teams.campeon != null && teams.campeon === id
-        return (
-          <span
-            key={id}
-            title={`${t?.name ?? `Equipo #${id} (no encontrado)`}${esCampeon ? ' · ¡CAMPEÓN! +15' : fuera ? ' · eliminado' : ' · sigue vivo'}`}
-            className={`grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-petroleo-3 ring-1 transition sm:h-6 sm:w-6 ${
-              esCampeon ? 'ring-2 ring-ambar shadow-[0_0_10px_-1px_rgba(232,180,78,0.9)]'
-                : fuera ? 'ring-linea'
-                : 'ring-cancha/50'
-            }`}
-          >
-            {t?.flag_url ? (
-              // La opacidad va SOLO en la bandera, no en el círculo: así el
-              // aro siempre se ve y nunca "desaparece" un favorito.
-              <img src={t.flag_url} alt=""
-                className={`h-full w-full object-cover ${fuera ? 'opacity-70 grayscale' : ''}`}
-                onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} />
-            ) : (
-              <span className="font-body text-[8px] text-crema/45">?</span>
-            )}
-          </span>
-        )
-      })}
+      {lista.map((id) => (
+        <FavFlag
+          key={id}
+          id={id}
+          team={teams.teamById[id]}
+          fuera={teams.eliminado(id)}
+          esCampeon={teams.campeon != null && teams.campeon === id}
+        />
+      ))}
     </div>
   )
 }
